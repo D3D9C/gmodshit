@@ -2,25 +2,15 @@
     Logs
 */
 
+local frame         = false 
+local richtext      = false
+
 local logged        = {}
 logged.Original     = {}
 logged.Nets         = {}
 
 logged.lastIncoming = "NONE"
 logged.lastOutgoing = "NONE"
-
-local function Log( str, types, writed, read )
-    read = read or false
-
-    local strWrite = {}
-
-    for i = 1, #writed do
-        strWrite[ i ] = tostring( writed[ i ] )
-    end
-
-    local lastnet = read and logged.lastIncoming or logged.lastOutgoing
-    logged.Nets[ #logged.Nets + 1 ]   = { b = read, func = str, types = types, writed = strWrite, last = lastnet }
-end
 
 /*
     Types
@@ -41,6 +31,44 @@ local types = {
     { "Receive",    Color( 0, 255, 255)     }, 
     { "Send",       Color( 255, 0, 255)     }, 
 }
+
+/*
+    Log func
+*/
+
+local function Log( str, mtypes, writed, read )
+    read = read or false
+    local lastnet = read and logged.lastIncoming or logged.lastOutgoing
+
+    local strWrite = {}
+
+    for i = 1, #writed do
+        strWrite[ i ] = tostring( writed[ i ] )
+    end
+
+    logged.Nets[ #logged.Nets + 1 ]   = { b = read, func = str, types = mtypes, writed = strWrite, last = lastnet }
+
+    local sstr = "[" .. lastnet .. "]"
+
+    local col = read and types[ 12 ][ 2 ] or types[ 13 ][ 2 ]
+    richtext:InsertColorChange( col.r, col.g, col.b, 255 )
+    richtext:AppendText( sstr )
+
+    col  = types[ mtypes[ 1 ] ][ 2 ]
+    sstr = "[ " .. str .. " ]"
+
+    richtext:InsertColorChange( col.r, col.g, col.b, 255 )
+    richtext:AppendText( sstr )
+
+    sstr = read and " Readed" or " Writed"
+
+    for i = 1, #writed do
+        sstr = sstr .. " " .. types[ mtypes[ i ] ][ 1 ] .. " " .. strWrite[ i ]
+    end 
+
+    richtext:InsertColorChange( 255, 255, 255, 255 )
+    richtext:AppendText( sstr .. "\n" ) 
+end
 
 /*  
     Writable
@@ -296,4 +324,31 @@ net.Receive = function( str, func )
 
     original_Receive( str, Override_Receiver )
 end
+
+/*
+    Vgui panel
+*/
+
+frame = vgui.Create( "DFrame" )
+frame:SetText( "UNL" )
+frame:SetPos( 15, 15 )
+frame:SetSize( 700, 500 )
+frame:ShowCloseButton( false )
+frame:MakePopup()
+
+function frame:Paint( w, h )
+    surface.SetDrawColor( 0, 0, 0, 128 )
+    surface.DrawRect( 0, 0, w, h )
+end
+
+richtext = vgui.Create( "RichText", frame )
+richtext:SetPos( 5, 35 )
+richtext:SetSize( 690, 450 )
+richtext:SetFontInternal( "BudgetLabel" )
+
+/*
+    Concommand
+*/
+
+concommand.Add( "_unl", function() frame:ToggleVisible() end )
 
