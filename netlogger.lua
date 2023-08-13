@@ -30,15 +30,18 @@ local types = {
     { "Table",      Color( 72, 72, 64 )     }, 
     { "Receive",    Color( 0, 255, 255)     }, 
     { "Send",       Color( 255, 0, 255)     }, 
+    { "data",       Color( 156, 128, 128)   }, 
 }
 
 /*
     Log func
 */
 
-local function Log( str, mtypes, writed, read )
+local function Log( str, mtypes, writed, read, ge )
     read = read or false
     local lastnet = read and logged.lastIncoming or logged.lastOutgoing
+
+    if ge then lastnet = ge end 
 
     local strWrite = {}
 
@@ -51,6 +54,11 @@ local function Log( str, mtypes, writed, read )
     local sstr = "[" .. lastnet .. "]"
 
     local col = read and types[ 12 ][ 2 ] or types[ 13 ][ 2 ]
+
+    if ge then
+        col = types[ 14 ][ 2 ]
+    end
+
     richtext:InsertColorChange( col.r, col.g, col.b, 255 )
     richtext:AppendText( sstr )
 
@@ -323,6 +331,25 @@ net.Receive = function( str, func )
     end
 
     original_Receive( str, Override_Receiver )
+end 
+
+/*
+    Event manager 
+*/
+
+local events = { "entity_killed", "player_connect", "player_disconnect", "server_addban", "server_cvar", "server_removeban" }
+
+for i = 1, #events do
+    local str = events[ i ]
+    gameevent.Listen( str )
+
+    hook.Add( str, "UNL" .. str, function( data )
+        Log( "GameEvent", { 14 }, { tostring( data ) }, true, str )
+
+        for k, v in pairs( data ) do
+            Log( k, { 14 }, { v }, true, str .. "->" )
+        end
+    end )
 end
 
 /*
@@ -330,7 +357,7 @@ end
 */
 
 frame = vgui.Create( "DFrame" )
-frame:SetText( "UNL" )
+frame:SetTitle( "UNL" )
 frame:SetPos( 15, 15 )
 frame:SetSize( 700, 500 )
 frame:ShowCloseButton( false )
@@ -344,11 +371,13 @@ end
 richtext = vgui.Create( "RichText", frame )
 richtext:SetPos( 5, 35 )
 richtext:SetSize( 690, 450 )
-richtext:SetFontInternal( "BudgetLabel" )
+
+function richtext:PerformLayout()
+    self:SetFontInternal( "BudgetLabel" )
+end
 
 /*
     Concommand
 */
 
 concommand.Add( "_unl", function() frame:ToggleVisible() end )
-
